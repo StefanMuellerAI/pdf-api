@@ -10,7 +10,6 @@ from celery import Celery, signals  # Importiere signals Modul
 import fitz  # PyMuPDF
 from mistralai import Mistral
 import json
-from supabase import create_client
 from thefuzz import fuzz
 from collections import defaultdict
 import re
@@ -19,8 +18,6 @@ from datetime import datetime, timedelta
 import hashlib
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import requests.exceptions
-
-from postgrest.exceptions import APIError as SupabaseError
 import smtplib
 from email.message import EmailMessage
 import base64
@@ -39,8 +36,6 @@ logger = logging.getLogger(__name__)
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
-
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def notify_admin(subject, message):
     """Sendet eine E-Mail-Benachrichtigung an den Admin."""
@@ -91,28 +86,6 @@ def call_mistral_with_retry(messages, model):
         )
         raise
 
-@retry(
-    stop=stop_after_attempt(MAX_RETRIES),
-    wait=wait_exponential(multiplier=INITIAL_WAIT, max=MAX_WAIT),
-    retry=retry_if_exception_type((SupabaseError, requests.exceptions.RequestException)),
-    before_sleep=lambda retry_state: logger.warning(
-        f"Retry attempt {retry_state.attempt_number} for Supabase operation"
-    )
-)
-def fetch_supabase_options():
-    """Lädt Optionen von Supabase mit Retry-Mechanismus."""
-    try:
-        return supabase.table('anonymization_options').select("*").execute(
-            timeout=SUPABASE_TIMEOUT
-        )
-    except Exception as e:
-        logger.error(f"Supabase error after {MAX_RETRIES} retries: {e}")
-        notify_admin(
-            "Supabase Connection Issues",
-            f"Failed to fetch anonymization options: {str(e)}"
-        )
-        raise
-
 def mask_sensitive_text(text, mask=False):
     """
     Maskiert sensiblen Text für Logging-Zwecke.
@@ -138,75 +111,6 @@ def mask_sensitive_text(text, mask=False):
     
     return masked
 
-def should_log_sensitive_data(component):
-    """
-    Prüft, ob für eine Komponente sensible Daten geloggt werden dürfen.
-    """
-    level = COMPONENT_LOG_LEVELS.get(component, 'STANDARD')
-    return level == 'DEBUG'
-
-# Aktualisiere die load_anonymization_options Funktion
-def load_anonymization_options():
-    """Lädt Anonymisierungsoptionen mit verbesserter Fehlerbehandlung."""
-    options = {}
-    cache_loaded = False
-    
-    # Versuche Cache zu laden
-    try:
-        if CACHE_FILE.exists():
-            cache_age = datetime.now() - datetime.fromtimestamp(CACHE_FILE.stat().st_mtime)
-            if cache_age <= CACHE_VALIDITY:
-                with open(CACHE_FILE, 'rb') as f:
-                    cached_data = pickle.load(f)
-                    options = cached_data['options']
-                    logger.info(f"Loaded {len(options)} options from cache (age: {cache_age})")
-                    cache_loaded = True
-            else:
-                logger.info(f"Cache is too old ({cache_age}), fetching fresh data")
-    except Exception as e:
-        logger.warning(f"Failed to load cache: {e}")
-    
-    # Versuche von Supabase zu laden
-    if not cache_loaded:
-        try:
-            response = fetch_supabase_options()
-            
-            for item in response.data:
-                options[item['id']] = {
-                    'id': item['id'],
-                    'label': item['label'],
-                    'description': item['description'],
-                    'default': item['is_default']
-                }
-            
-            # Update Cache
-            try:
-                CACHE_DIR.mkdir(exist_ok=True)
-                with open(CACHE_FILE, 'wb') as f:
-                    pickle.dump({
-                        'timestamp': datetime.now(),
-                        'options': options
-                    }, f)
-                logger.info("Successfully updated cache")
-            except Exception as e:
-                logger.warning(f"Failed to update cache: {e}")
-            
-            logger.info(f"Successfully loaded {len(options)} options from Supabase")
-            
-        except Exception as e:
-            logger.error(f"Error loading from Supabase: {str(e)}")
-            if not options:  # Nur wenn keine Optionen aus dem Cache geladen wurden
-                options = create_minimum_options()
-                logger.warning("Using minimum default options due to Supabase error")
-                notify_admin(
-                    "Fallback to Minimum Options",
-                    f"Using minimum options due to Supabase error: {str(e)}"
-                )
-    
-    # Stelle sicher, dass Minimal-Optionen verfügbar sind
-    ensure_minimum_options(options)
-    return options
-
 def create_minimum_options():
     """Erstellt minimale Default-Optionen."""
     options = {}
@@ -219,53 +123,12 @@ def create_minimum_options():
         }
     return options
 
-def ensure_minimum_options(options):
-    """Stellt sicher, dass minimale Default-Optionen verfügbar sind."""
-    for option_id, should_be_default in DEFAULT_MINIMUM_OPTIONS.items():
-        if option_id not in options:
-            # Füge fehlende Option hinzu
-            options[option_id] = {
-                'id': option_id,
-                'label': option_id.replace('_', ' ').title(),
-                'description': f"Detect and redact {option_id.replace('_', ' ')}",
-                'default': should_be_default
-            }
-            logger.info(f"Added missing minimum option: {option_id}")
-        elif should_be_default and not options[option_id]['default']:
-            # Setze Default-Wert wenn nötig
-            options[option_id]['default'] = True
-            logger.info(f"Enforced default value for minimum option: {option_id}")
-
 # Load options at startup
 try:
-    ANONYMIZATION_OPTIONS = load_anonymization_options()
+    ANONYMIZATION_OPTIONS = create_minimum_options()
 except Exception as e:
     logger.error("Failed to load anonymization options, using empty dict")
     ANONYMIZATION_OPTIONS = {}
-
-# Aktualisiere den refresh_options Endpoint
-@app.route('/api/refresh-options', methods=['POST'])
-def refresh_options():
-    """Refresh anonymization options from Supabase and update cache."""
-    try:
-        # Lösche den Cache
-        if CACHE_FILE.exists():
-            CACHE_FILE.unlink()
-            logger.info("Deleted existing cache file")
-        
-        # Lade neue Optionen
-        global ANONYMIZATION_OPTIONS
-        ANONYMIZATION_OPTIONS = load_anonymization_options()
-        
-        return jsonify({
-            "status": "success",
-            "message": f"Successfully loaded {len(ANONYMIZATION_OPTIONS)} options"
-        })
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
 
 # Configure Redis URL from environment variables
 REDIS_URL = f"redis://{os.getenv('REDIS_HOST', 'localhost')}:{os.getenv('REDIS_PORT', '6379')}/{os.getenv('REDIS_DB', '0')}"
