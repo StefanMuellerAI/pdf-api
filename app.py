@@ -130,16 +130,7 @@ except Exception as e:
     logger.error("Failed to load anonymization options, using empty dict")
     ANONYMIZATION_OPTIONS = {}
 
-REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
-REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
-REDIS_PORT = os.getenv('REDIS_PORT', '6379')
-REDIS_DB = os.getenv('REDIS_DB', '0')
-
-# Füge Passwort korrekt in die URL ein, falls es gesetzt ist
-if REDIS_PASSWORD:
-    REDIS_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
-else:
-    REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+REDIS_URL = "redis://:redis123@localhost:6379/0" 
 
 # Configure Celery
 celery = Celery(
