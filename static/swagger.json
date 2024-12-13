@@ -1,0 +1,301 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "PDF Anonymization API",
+    "description": "API für die Anonymisierung von PDF-Dokumenten",
+    "version": "1.0.0",
+    "contact": {
+      "email": "admin@example.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://0.0.0.0:5001",
+      "description": "Development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "PDF Processing",
+      "description": "Endpunkte für die PDF-Verarbeitung"
+    },
+    {
+      "name": "Configuration",
+      "description": "Endpunkte für Konfiguration und Optionen"
+    }
+  ],
+  "paths": {
+    "/upload": {
+      "post": {
+        "tags": [
+          "PDF Processing"
+        ],
+        "summary": "PDF-Datei hochladen und Anonymisierung starten",
+        "description": "Lädt eine PDF-Datei hoch und startet den Anonymisierungsprozess",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "PDF-Datei"
+                  },
+                  "preferences": {
+                    "type": "object",
+                    "description": "JSON-Objekt mit Anonymisierungsoptionen",
+                    "example": {
+                      "names": true,
+                      "addresses": true,
+                      "emails": true
+                    }
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task erfolgreich gestartet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "task_id": {
+                      "type": "string",
+                      "description": "ID des gestarteten Tasks"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ungültige Anfrage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Fehlerbeschreibung"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server-Fehler",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Fehlerbeschreibung"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status/{task_id}": {
+      "get": {
+        "tags": [
+          "PDF Processing"
+        ],
+        "summary": "Status eines Tasks abfragen",
+        "description": "Ruft den aktuellen Status eines Anonymisierungs-Tasks ab",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "description": "ID des Tasks",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task-Status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "Processing",
+                        "Completed",
+                        "Failed"
+                      ],
+                      "description": "Aktueller Status des Tasks"
+                    },
+                    "current_page": {
+                      "type": "integer",
+                      "description": "Aktuelle Seite (nur bei status=Processing)"
+                    },
+                    "total_pages": {
+                      "type": "integer",
+                      "description": "Gesamtanzahl der Seiten"
+                    },
+                    "error": {
+                      "type": "string",
+                      "description": "Fehlermeldung (nur bei status=Failed)"
+                    }
+                  }
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary",
+                  "description": "Anonymisierte PDF-Datei (nur bei status=Completed)"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server-Fehler",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Fehlerbeschreibung"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/refresh-options": {
+      "post": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Anonymisierungsoptionen aktualisieren",
+        "description": "Lädt die Anonymisierungsoptionen neu aus der Datenbank",
+        "responses": {
+          "200": {
+            "description": "Optionen erfolgreich aktualisiert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "success"
+                      ],
+                      "description": "Status der Operation"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Erfolgsmeldung"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server-Fehler",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "error"
+                      ],
+                      "description": "Status der Operation"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Fehlermeldung"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/anonymization-options": {
+      "get": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Verfügbare Anonymisierungsoptionen abrufen",
+        "description": "Gibt eine Liste aller verfügbaren Anonymisierungsoptionen zurück",
+        "responses": {
+          "200": {
+            "description": "Liste der Optionen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "options": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "ID der Option"
+                          },
+                          "label": {
+                            "type": "string",
+                            "description": "Anzeigename der Option"
+                          },
+                          "description": {
+                            "type": "string",
+                            "description": "Beschreibung der Option"
+                          },
+                          "default": {
+                            "type": "boolean",
+                            "description": "Standard-Aktivierungsstatus"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}
