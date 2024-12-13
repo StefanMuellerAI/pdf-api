@@ -131,7 +131,7 @@ except Exception as e:
     ANONYMIZATION_OPTIONS = {}
 
 # Configure Redis URL from environment variables
-REDIS_URL = f"redis://{os.getenv('REDIS_HOST', 'localhost')}:{os.getenv('REDIS_PORT', '6379')}/{os.getenv('REDIS_DB', '0')}"
+REDIS_URL = f"redis://:{os.getenv('REDIS_PASSWORD')}@{os.getenv('REDIS_HOST', 'localhost')}:{os.getenv('REDIS_PORT', '6379')}/{os.getenv('REDIS_DB', '0')}"
 
 # Configure Celery
 celery = Celery(
