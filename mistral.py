@@ -1,3 +1,7 @@
+#mistral.py
+#Description: This file contains the Mistral API client and the functions to analyze text and pages with Mistral.
+#Date: 2024-12-15
+
 import json
 import logging
 from mistralai import Mistral
@@ -7,7 +11,7 @@ from config import *
 
 logger = logging.getLogger(__name__)
 
-mistral_client = Mistral(api_key=os.getenv('MISTRAL_API_KEY'))
+mistral_client = Mistral(api_key=MISTRAL_API_KEY)
 
 def analyze_text_with_mistral(text, preferences):
     """Analyze text using Mistral API with improved error handling."""

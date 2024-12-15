@@ -1,6 +1,7 @@
 from celery import Celery, signals
 from config import *
 import logging
+import os
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -8,8 +9,8 @@ logger = logging.getLogger(__name__)
 # Initialize Celery
 celery = Celery(
     'pdf_api',
-    broker=REDIS_URL,
-    backend=REDIS_URL,
+    broker=os.getenv('CELERY_BROKER_URL', REDIS_URL),
+    backend=os.getenv('CELERY_RESULT_BACKEND', REDIS_URL),
     broker_connection_retry_on_startup=True
 )
 
