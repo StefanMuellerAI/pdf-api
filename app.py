@@ -25,6 +25,8 @@ import pytesseract
 from PIL import Image
 import concurrent.futures
 from typing import List, Dict, Any, Tuple
+from functools import wraps
+from redis import Redis
 
 # Configure logging
 logging.basicConfig(
@@ -36,6 +38,28 @@ logger = logging.getLogger(__name__)
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
+
+# Redis configuration
+REDIS_URL = "redis://:redis123@localhost:6379/0"
+
+# Initialize Redis connection for Flask
+redis_client = Redis.from_url(REDIS_URL)
+
+# Test Redis connection at startup
+try:
+    redis_client.ping()
+    logger.info("Redis connection successful")
+except Exception as e:
+    logger.error(f"Redis connection failed: {e}")
+    raise
+
+# Configure Celery with explicit broker and backend URLs
+celery = Celery(
+    'app',
+    broker=REDIS_URL,
+    backend=REDIS_URL,
+    broker_connection_retry_on_startup=True
+)
 
 def notify_admin(subject, message):
     """Sendet eine E-Mail-Benachrichtigung an den Admin."""
@@ -130,13 +154,14 @@ except Exception as e:
     logger.error("Failed to load anonymization options, using empty dict")
     ANONYMIZATION_OPTIONS = {}
 
-REDIS_URL = "redis://:redis123@localhost:6379/0" 
+REDIS_URL = "redis://:redis123@localhost:6379/0"
 
-# Configure Celery
+# Configure Celery with explicit broker and backend URLs
 celery = Celery(
     'app',
     broker=REDIS_URL,
-    backend=REDIS_URL
+    backend=REDIS_URL,
+    broker_connection_retry_on_startup=True
 )
 
 # Configure Celery for better macOS compatibility and queue purging
@@ -208,7 +233,24 @@ FINDING_SCHEMA = {
     }
 }
 
+# Add after other configuration constants
+API_TOKEN = os.getenv('API_TOKEN', 'your-default-secure-token-here')  # Make sure to change this in production
+
+def require_token(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({"error": "Authentication required."}), 401
+        
+        if token != f"Bearer {API_TOKEN}":
+            return jsonify({"error": "Invalid token."}), 401
+            
+        return f(*args, **kwargs)
+    return decorated
+
 @app.route('/api/anonymization-options', methods=['GET'])
+@require_token
 def get_anonymization_options():
     """Return available anonymization options."""
     return jsonify({
@@ -952,6 +994,7 @@ def analyze_text_with_mistral(text, preferences):
         return []
 
 @app.route('/upload', methods=['POST'])
+@require_token
 def upload_pdf():
     """Handle PDF upload and start processing."""
     try:
@@ -1015,6 +1058,7 @@ def upload_pdf():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/status/<task_id>')
+@require_token
 def get_status(task_id):
     """Get the status of a processing task."""
     try:
