@@ -162,3 +162,36 @@ CELERY_CONFIG = {
 
 # Confidence threshold for findings
 CONFIDENCE_THRESHOLD = 0.8  # 90% minimum confidence
+
+API_TOKEN = os.getenv('API_TOKEN', 'your-default-secure-token-here')  # Make sure to change this in production
+
+
+DEFAULT_MINIMUM_OPTIONS = {
+    'names': True,
+    'addresses': False,
+    'dates': False,
+    'emails': True,
+    'phone_numbers': True,
+    'ids': False
+}
+
+# Initialisiere ANONYMIZATION_OPTIONS mit Standardwerten
+ANONYMIZATION_OPTIONS = {
+    option_id: {
+        'id': option_id,
+        'label': option_id.replace('_', ' ').title(),
+        'description': f"Detect and redact {option_id.replace('_', ' ')}",
+        'default': is_default
+    }
+    for option_id, is_default in DEFAULT_MINIMUM_OPTIONS.items()
+}
+
+TYPE_DESCRIPTIONS = {
+    'addresses': "'addresses' für vollständige Postadressen (NICHT einzelne Straßennamen oder Städte, sondern nur komplette Adressen mit mindestens Straße, Hausnummer und PLZ/Ort)",
+    'dates': "'dates' für Datumswerte in verschiedenen Formaten (z.B., '01.01.2024', '2024-01-01', '1. Januar 2024'). NICHT markieren: Uhrzeiten ohne Datum, Jahreszahlen allein",
+    'emails': "'emails' für gültige E-Mail-Adressen mit @ und Domain (z.B., 'beispiel@domain.de'). NICHT markieren: Texte mit '@' die keine gültigen E-Mail-Adressen sind",
+    'ids': "'ids' für eindeutige Identifikationsnummern (nur Steuer-IDs, Sozialversicherungsnummern, Handelsregisternummern, Ausweisnummern). NICHT markieren: Bestellnummern, Artikelnummern, Rechnungsnummern",
+    'names': "'names' ausschließlich für echte Personennamen von Menschen (z.B., 'Dr. Max Mustermann, Stefan Müller; Müller, Stefan; Stefan M.; S. Meier'). NICHT markieren: Firmennamen, Produktnamen, Straßennamen, Städtenamen, Gebäudenamen oder andere Eigennamen",
+    'phone_numbers': "'phone_numbers' für Telefon- und Faxnummern mit Vorwahl (z.B., '+49 30 12345678; 0177-5228242;0177/5228242;01775228242'). NICHT markieren: andere Zahlenkombinationen oder Nummern ohne Vorwahl"
+}
+        
