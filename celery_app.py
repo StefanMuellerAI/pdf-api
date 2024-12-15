@@ -5,9 +5,6 @@ import logging
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Redis configuration
-REDIS_URL = REDIS_URL
-
 # Initialize Celery
 celery = Celery(
     'pdf_api',

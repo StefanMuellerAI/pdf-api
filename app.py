@@ -7,10 +7,9 @@ from flask_cors import CORS
 import json
 from datetime import datetime
 from typing import List, Dict, Any, Tuple
-from functools import wraps
 from celery_app import celery
 from tasks import process_pdf
-
+from security import require_token
 # Configure logging
 logging.basicConfig(
     level=LOG_LEVEL,
@@ -21,19 +20,6 @@ logger = logging.getLogger(__name__)
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
-
-def require_token(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({"error": "Authentication required."}), 401
-        
-        if token != f"Bearer {API_TOKEN}":
-            return jsonify({"error": "Invalid token."}), 401
-            
-        return f(*args, **kwargs)
-    return decorated
 
 @app.route('/upload', methods=['POST'])
 @require_token
