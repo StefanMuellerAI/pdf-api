@@ -86,7 +86,29 @@
                   "properties": {
                     "error": {
                       "type": "string",
-                      "description": "Fehlerbeschreibung"
+                      "description": "Technical error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "User-friendly error message"
+                    },
+                    "details": {
+                      "type": "object",
+                      "description": "Additional error details",
+                      "properties": {
+                        "current_pages": {
+                          "type": "integer",
+                          "description": "Number of pages in the uploaded PDF"
+                        },
+                        "max_pages": {
+                          "type": "integer",
+                          "description": "Maximum allowed number of pages"
+                        },
+                        "suggestion": {
+                          "type": "string",
+                          "description": "Suggested solution to resolve the error"
+                        }
+                      }
                     }
                   }
                 }
@@ -102,7 +124,29 @@
                   "properties": {
                     "error": {
                       "type": "string",
-                      "description": "Fehlerbeschreibung"
+                      "description": "Technical error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "User-friendly error message"
+                    },
+                    "details": {
+                      "type": "object",
+                      "description": "Additional error details",
+                      "properties": {
+                        "current_pages": {
+                          "type": "integer",
+                          "description": "Number of pages in the uploaded PDF"
+                        },
+                        "max_pages": {
+                          "type": "integer",
+                          "description": "Maximum allowed number of pages"
+                        },
+                        "suggestion": {
+                          "type": "string",
+                          "description": "Suggested solution to resolve the error"
+                        }
+                      }
                     }
                   }
                 }
@@ -180,7 +224,29 @@
                   "properties": {
                     "error": {
                       "type": "string",
-                      "description": "Fehlerbeschreibung"
+                      "description": "Technical error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "User-friendly error message"
+                    },
+                    "details": {
+                      "type": "object",
+                      "description": "Additional error details",
+                      "properties": {
+                        "current_pages": {
+                          "type": "integer",
+                          "description": "Number of pages in the uploaded PDF"
+                        },
+                        "max_pages": {
+                          "type": "integer",
+                          "description": "Maximum allowed number of pages"
+                        },
+                        "suggestion": {
+                          "type": "string",
+                          "description": "Suggested solution to resolve the error"
+                        }
+                      }
                     }
                   }
                 }

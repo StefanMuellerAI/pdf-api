@@ -7,6 +7,8 @@ from flask_cors import CORS
 import json
 from datetime import datetime
 from typing import List, Dict, Any, Tuple
+import fitz  # PyMuPDF
+import tempfile
 from celery_app import celery
 from tasks import process_pdf
 from security import require_token
@@ -19,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+CORS(app, expose_headers=['Content-Type', 'Authorization'])
 
 @app.route('/upload', methods=['POST'])
 @require_token
@@ -28,19 +30,75 @@ def upload_pdf():
     try:
         if 'file' not in request.files:
             logger.error("No file provided in request")
-            return jsonify({"error": "No file provided"}), 400
+            return jsonify({
+                "error": "No file provided",
+                "message": "Please select a PDF file to upload.",
+                "details": {
+                    "suggestion": "Make sure you have selected a PDF file before clicking upload."
+                }
+            }), 400
         
         file = request.files['file']
         if not file.filename.endswith('.pdf'):
             logger.error(f"Invalid file type: {file.filename}")
-            return jsonify({"error": "File must be a PDF"}), 400
+            return jsonify({
+                "error": "Invalid file type",
+                "message": "The uploaded file must be a PDF document.",
+                "details": {
+                    "filename": file.filename,
+                    "suggestion": "Please select a file with .pdf extension."
+                }
+            }), 400
+        
+        # Read the PDF file once
+        pdf_data = file.read()
+        logger.info(f"Read PDF file of size: {len(pdf_data)} bytes")
+        
+        # Check page count
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=True) as temp_file:
+            temp_file.write(pdf_data)
+            temp_file.flush()
+            
+            try:
+                doc = fitz.open(temp_file.name)
+                page_count = len(doc)
+                doc.close()
+                
+                if page_count > MAX_PDF_PAGES:
+                    logger.error(f"PDF has too many pages: {page_count}")
+                    return jsonify({
+                        "error": "PDF exceeds maximum page limit",
+                        "message": f"The PDF file contains {page_count} pages, but the maximum allowed is {MAX_PDF_PAGES} pages.",
+                        "details": {
+                            "current_pages": page_count,
+                            "max_pages": MAX_PDF_PAGES,
+                            "suggestion": "Please split the document into smaller parts or contact support if you need to process larger documents."
+                        }
+                    }), 400
+                    
+            except Exception as e:
+                logger.error(f"Error checking PDF page count: {str(e)}")
+                return jsonify({
+                    "error": "Invalid PDF file",
+                    "message": "The uploaded file appears to be corrupted or is not a valid PDF.",
+                    "details": {
+                        "technical_error": str(e),
+                        "suggestion": "Please ensure the file is a valid PDF document and try again."
+                    }
+                }), 400
         
         # Get preferences from the request
         try:
             preferences = json.loads(request.form.get('preferences', '{}'))
             if not isinstance(preferences, dict):
                 logger.error("Preferences must be a JSON object")
-                return jsonify({"error": "Preferences must be a JSON object"}), 400
+                return jsonify({
+                    "error": "Invalid preferences format",
+                    "message": "The anonymization preferences are not in the correct format.",
+                    "details": {
+                        "suggestion": "Please try again or contact support if the problem persists."
+                    }
+                }), 400
             
             # Log frontend selection
             logger.info("Frontend selection for anonymization:")
@@ -66,24 +124,34 @@ def upload_pdf():
             
         except json.JSONDecodeError:
             logger.error("Invalid JSON in preferences")
-            return jsonify({"error": "Invalid JSON in preferences"}), 400
-        
-        # Read the PDF file
-        pdf_data = file.read()
-        logger.info(f"Read PDF file of size: {len(pdf_data)} bytes")
+            return jsonify({
+                "error": "Invalid preferences data",
+                "message": "The anonymization preferences contain invalid data.",
+                "details": {
+                    "suggestion": "Please try again or contact support if the problem persists."
+                }
+            }), 400
         
         # Start Celery task
         task = process_pdf.delay(pdf_data, preferences)
         logger.info(f"Started task with ID: {task.id}")
         
         return jsonify({
-            "task_id": task.id
+            "task_id": task.id,
+            "message": "PDF upload successful. Processing started."
         })
     
     except Exception as e:
         logger.error(f"Error in upload_pdf: {str(e)}")
         logger.exception("Full traceback:")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": "Internal server error",
+            "message": "An unexpected error occurred while processing your request.",
+            "details": {
+                "technical_error": str(e),
+                "suggestion": "Please try again later or contact support if the problem persists."
+            }
+        }), 500
 
 @app.route('/status/<task_id>')
 @require_token

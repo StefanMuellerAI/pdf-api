@@ -72,6 +72,7 @@ MISTRAL_API_KEY = os.getenv('MISTRAL_API_KEY')
 MISTRAL_MODEL = os.getenv('MISTRAL_MODEL', 'mistral-large-latest')
 
 # PDF Processing Configuration
+MAX_PDF_PAGES = int(os.getenv('MAX_PDF_PAGES', 10))
 REDACTION_FILL_COLOR = tuple(map(int, os.getenv('REDACTION_FILL_COLOR', '0,0,0').split(',')))
 
 # Schema Configuration
