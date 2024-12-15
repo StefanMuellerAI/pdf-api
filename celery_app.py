@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Redis configuration
-REDIS_URL = "redis://:redis123@localhost:6379/0"
+REDIS_URL = REDIS_URL
 
 # Initialize Celery
 celery = Celery(

@@ -16,10 +16,6 @@ FLASK_PORT = int(os.getenv('FLASK_PORT', 5001))
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
-# Supabase Configuration
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_KEY = os.getenv('SUPABASE_KEY')  # Anon/Public key
-
 # Cache Configuration
 CACHE_DIR = Path(os.getenv('CACHE_DIR', 'cache'))
 CACHE_FILE = CACHE_DIR / 'anonymization_options.pickle'
@@ -70,7 +66,8 @@ SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = os.getenv('REDIS_PORT', '6379')
 REDIS_DB = os.getenv('REDIS_DB', '0')
-REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', 'redis123')
+REDIS_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 
 # Mistral Configuration
 MISTRAL_API_KEY = os.environ.get('MISTRAL_API_KEY')
