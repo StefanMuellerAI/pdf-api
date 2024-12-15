@@ -3,11 +3,6 @@ from pathlib import Path
 from enum import Enum
 from datetime import timedelta
 
-# Initialize Supabase client
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_KEY = os.getenv('SUPABASE_KEY')  # Anon/Public key
-
-
 # Basic Configuration
 FLASK_HOST = os.getenv('FLASK_HOST', '0.0.0.0')
 FLASK_PORT = int(os.getenv('FLASK_PORT', 5001))
@@ -70,7 +65,7 @@ REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', 'redis123')
 REDIS_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 
 # Mistral Configuration
-MISTRAL_API_KEY = os.environ.get('MISTRAL_API_KEY')
+MISTRAL_API_KEY = os.getenv('MISTRAL_API_KEY')
 MISTRAL_MODEL = os.getenv('MISTRAL_MODEL', 'mistral-large-latest')
 
 # PDF Processing Configuration
