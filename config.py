@@ -2,6 +2,9 @@ import os
 from pathlib import Path
 from enum import Enum
 from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Basic Configuration
 FLASK_HOST = os.getenv('FLASK_HOST', '0.0.0.0')

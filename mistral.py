@@ -9,6 +9,7 @@ from encoding_utils import encode_page_as_base64
 import os
 from config import *
 
+
 logger = logging.getLogger(__name__)
 
 mistral_client = Mistral(api_key=MISTRAL_API_KEY)
